@@ -1,8 +1,8 @@
 //
 //  BSQRCodeReader.swift
 //  v1.0.0
-//  This plugin is created to read QR Code inside your app. 
-//  BSQRCodeReader is inherited from UIView so you can use your own page design and 
+//  This plugin is created to read QR Code inside your app.
+//  BSQRCodeReader is inherited from UIView so you can use your own page design and
 //  include this reader to be part of your layout.
 //
 //  Created by Bobby Stenly Irawan (iceman.bsi@gmail.com) on 4/12/16.
@@ -28,17 +28,19 @@ public extension BSQRCodeReaderDelegate {
 }
 
 open class BSQRCodeReader: UIView, AVCaptureMetadataOutputObjectsDelegate {
-
+    
     // -- public attributes
     open var delegate: BSQRCodeReaderDelegate?
+    open var scanSize = 200
+    
     // -- public attributes
-    
-    
     var captureSession: AVCaptureSession = AVCaptureSession()
     var captureDevice: AVCaptureDevice? = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
     var deviceInput: AVCaptureDeviceInput?
     var metadataOutput: AVCaptureMetadataOutput = AVCaptureMetadataOutput()
     var videoPreviewLayer: AVCaptureVideoPreviewLayer!
+    var qrCodeFrameView:UIView?
+    var scanRec:CGRect?
     
     required public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -103,13 +105,43 @@ open class BSQRCodeReader: UIView, AVCaptureMetadataOutputObjectsDelegate {
     }
     
     
-    
     open func startScanning() {
         self.captureSession.startRunning()
+        
+        if scanRec != nil {
+            let visibleRect = videoPreviewLayer.metadataOutputRectOfInterest(for: scanRec!)
+            metadataOutput.rectOfInterest = visibleRect
+        } else {
+            print("scanrec not defined, add the addBorders attribute")
+        }
+        
     }
     
     open func stopScanning() {
         self.captureSession.stopRunning()
+    }
+    
+    open func addBorders() {
+        //added border box, the camera will only scan the inside of the box
+        let frameSize = self.superview?.frame.size
+        let screenWidth = super.superview?.frame.size.width
+        let screenHeight = super.superview?.frame.size.height
+        let size = self.scanSize
+        let xPos = (CGFloat(screenWidth!) / CGFloat(2)) - (CGFloat(size) / CGFloat(2))
+        let yPos = (CGFloat(screenHeight!) / CGFloat(2)) - (CGFloat(size) / CGFloat(2))
+        self.scanRec = CGRect(x: Int(xPos), y: Int(yPos), width: size, height: size)
+        
+        let shapeLayer:CAShapeLayer = CAShapeLayer()
+        
+        shapeLayer.bounds = self.scanRec!
+        shapeLayer.position = CGPoint(x: (frameSize?.width)!/2, y: (frameSize?.height)!/2)
+        shapeLayer.fillColor = UIColor.clear.cgColor
+        shapeLayer.strokeColor = UIColor.white.cgColor
+        shapeLayer.lineWidth = 2
+        shapeLayer.lineJoin = kCALineJoinRound
+        shapeLayer.lineDashPattern = [6,3]
+        shapeLayer.path = UIBezierPath(roundedRect: self.scanRec!, cornerRadius: 5).cgPath
+        self.superview?.layer.addSublayer(shapeLayer)
     }
     
     
